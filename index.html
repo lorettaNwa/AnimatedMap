@@ -10,12 +10,12 @@
         body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
         #map { width: 100%; height: 90vh; }
         #slider {
-            width: 80%;
-            margin: 60px auto;
+            width: 50%;
+            margin: 20px auto;
             display: block;
             -webkit-appearance: none;
             appearance: none;
-            height: 20px;
+            height: 10px;
             background: #ddd;
             outline: none;
             opacity: 0.7;
@@ -27,9 +27,9 @@
         #slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 80px;
-            height: 80px;
-            background:black;
+            width: 10px;
+            height: 20px;
+            background: black;
             cursor: pointer;
             border-radius: 50%;
         }
@@ -41,32 +41,26 @@
             border-radius: 50%;
         }
         #year-label {
-            margin-top: 10px;
-            font-size: 90px;
-            background-color:white;
+            margin-top: -15px;
+            font-size: 15px;
+            background-color: white;
             padding: 5px 10px;
             border-radius: 5px;
             font-family: 'Open Sans Bold', 'Arial Unicode MS Bold';
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: black;
-            text-shadow: 3px 3px 3px gray, -3px -3px 3px gray, 3px -3px 3px gray, -3px 3px 3px gray;
-
+            text-shadow: 1px 1px 1px gray, -1px -1px 1px gray, 1px -1px 1px gray, -1px 1px 1px gray;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <input type="range" id="slider" min="1800" max="1880" step="10" value="1800">
-    <div id="year-label">Year: 1800</div>
+    <input type="range" id="slider" min="1800" max="1880" step="1" value="1800">
+    <div id="year-label">YEAR: 1800</div>
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
     <script>
         mapboxgl.accessToken = 'pk.eyJ1Ijoibndhamlha3UiLCJhIjoiY2x3amphbXZ2MG02YTJscDRmcXE3MDllZCJ9.RwnwQjJ1U0Y95kTvA-4i7g'; // Replace with your Mapbox access token
-
-        const usBounds = [
-            [-130.0, 22.0], // Southwest coordinates (min longitude, min latitude)
-            [-60.0, 54.0]    // Northeast coordinates (max longitude, max latitude)
-        ];
 
         const map = new mapboxgl.Map({
             container: 'map',
@@ -94,8 +88,7 @@
                 ]
             },
             center: [-98.35, 39.50],
-            zoom: 4,
-            maxBounds: usBounds // Sets the map's geographical boundaries
+            zoom: 4
         });
 
         const shapefiles = {
@@ -188,7 +181,7 @@
                             layout: {
                                 'text-field': ['get', 'name'],
                                 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                                'text-size': 40, // Increased font size
+                                'text-size': 10, // Increased font size
                                 'text-transform': 'uppercase', // Changed text to uppercase
                                 'text-letter-spacing': 0.05, // Added letter spacing
                                 'text-offset': [0, 0.6],
@@ -197,7 +190,7 @@
                             paint: {
                                 'text-color': 'black',
                                 'text-halo-color': 'white', // Added halo color
-                                'text-halo-width': 5 // Added halo width
+                                'text-halo-width': 2 // Added halo width
                             }
                         });
                     }
