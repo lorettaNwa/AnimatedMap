@@ -8,7 +8,14 @@
     <script src="https://api.mapbox.com/mapbox.js/plugins/turf/v3.0.11/turf.min.js"></script>
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
-        #map { width: 100%; height: 90vh; }
+        #title {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+            text-shadow: 1px 1px 1px grey, -1px -1px 1px grey, 1px -1px 1px grey, -1px 1px 1px grey;
+        }
+        #map { width: 100%; height: 80vh; margin-top: 20px; }
         #slider {
             width: 50%;
             margin: 20px auto;
@@ -55,9 +62,10 @@
     </style>
 </head>
 <body>
+    <div id="title">THE TERRITORIAL EXPANSION OF THE UNITED STATES</div>
     <div id="map"></div>
     <input type="range" id="slider" min="1800" max="1880" step="1" value="1800">
-    <div id="year-label">YEAR: 1800</div>
+    <div id="year-label">Year: 1800</div>
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
     <script>
         mapboxgl.accessToken = 'pk.eyJ1Ijoibndhamlha3UiLCJhIjoiY2x3amphbXZ2MG02YTJscDRmcXE3MDllZCJ9.RwnwQjJ1U0Y95kTvA-4i7g'; // Replace with your Mapbox access token
