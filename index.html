@@ -5,28 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animated Historical US Boundaries</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox.js/plugins/turf/v3.0.11/turf.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; }
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
         #map { width: 100%; height: 90vh; }
-        #slider { width: 80%; margin: 20px auto; display: block; }
+        #slider {
+            width: 80%;
+            margin: 60px auto;
+            display: block;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 20px;
+            background: #ddd;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        #slider:hover {
+            opacity: 1;
+        }
+        #slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 80px;
+            height: 80px;
+            background:black;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        #slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #151615;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        #year-label {
+            margin-top: 10px;
+            font-size: 90px;
+            background-color:white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: 'Open Sans Bold', 'Arial Unicode MS Bold';
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: black;
+            text-shadow: 3px 3px 3px gray, -3px -3px 3px gray, 3px -3px 3px gray, -3px 3px 3px gray;
+
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <input type="range" id="slider" min="1800" max="1880" step="10" value="1800">
+    <div id="year-label">Year: 1800</div>
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.12.0/mapbox-gl.js"></script>
     <script>
         mapboxgl.accessToken = 'pk.eyJ1Ijoibndhamlha3UiLCJhIjoiY2x3amphbXZ2MG02YTJscDRmcXE3MDllZCJ9.RwnwQjJ1U0Y95kTvA-4i7g'; // Replace with your Mapbox access token
+
+        const usBounds = [
+            [-130.0, 22.0], // Southwest coordinates (min longitude, min latitude)
+            [-60.0, 54.0]    // Northeast coordinates (max longitude, max latitude)
+        ];
 
         const map = new mapboxgl.Map({
             container: 'map',
             style: {
                 "version": 8,
                 "sources": {
-                    "esri-terrain": {
+                    "esriWorldPhysical": {
                         "type": "raster",
                         "tiles": [
-                            "https://services.arcgisonline.com/arcgis/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}"
+                            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}"
                         ],
                         "tileSize": 256,
                         "attribution": 'Esri, HERE, Garmin, FAO, NOAA, USGS, Intermap, METI, © OpenStreetMap contributors, and the GIS User Community'
@@ -35,16 +85,17 @@
                 "glyphs": "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
                 "layers": [
                     {
-                        "id": "esri-terrain-layer",
+                        "id": "esriWorldPhysical-layer",
                         "type": "raster",
-                        "source": "esri-terrain",
+                        "source": "esriWorldPhysical",
                         "minzoom": 0,
                         "maxzoom": 22
                     }
                 ]
             },
             center: [-98.35, 39.50],
-            zoom: 4
+            zoom: 4,
+            maxBounds: usBounds // Sets the map's geographical boundaries
         });
 
         const shapefiles = {
@@ -70,20 +121,34 @@
             return 'name'; // Fallback if no match is found
         }
 
-        function removeDuplicateLabels(data, nameField) {
-            const seen = new Set();
-            const uniqueFeatures = data.features.filter(feature => {
-                const name = feature.properties[nameField];
-                if (seen.has(name)) {
-                    return false;
-                } else {
-                    seen.add(name);
-                    return true;
-                }
+        function getCentroid(geometry) {
+            if (geometry.type === "Polygon") {
+                return turf.centroid(geometry).geometry.coordinates;
+            } else if (geometry.type === "MultiPolygon") {
+                let largestPolygon = geometry.coordinates.reduce((a, b) => {
+                    return turf.area(turf.polygon(a)) > turf.area(turf.polygon(b)) ? a : b;
+                });
+                return turf.centroid(turf.polygon(largestPolygon)).geometry.coordinates;
+            }
+        }
+
+        function prepareLabelData(data, nameField) {
+            const labelFeatures = data.features.map(feature => {
+                const centroid = getCentroid(feature.geometry);
+                return {
+                    type: "Feature",
+                    properties: {
+                        name: feature.properties[nameField]
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: centroid
+                    }
+                };
             });
             return {
-                ...data,
-                features: uniqueFeatures
+                type: "FeatureCollection",
+                features: labelFeatures
             };
         }
 
@@ -93,10 +158,10 @@
                 .then(response => response.json())
                 .then(data => {
                     const nameField = getNameField(data);
-                    data = removeDuplicateLabels(data, nameField);
+                    const labelData = prepareLabelData(data, nameField);
                     if (map.getSource('us-boundaries')) {
                         map.getSource('us-boundaries').setData(data);
-                        map.setLayoutProperty('us-boundaries-labels', 'text-field', ['get', nameField]);
+                        map.getSource('us-boundaries-labels').setData(labelData);
                     } else {
                         map.addSource('us-boundaries', {
                             type: 'geojson',
@@ -108,24 +173,35 @@
                             source: 'us-boundaries',
                             layout: {},
                             paint: {
-                                'fill-color': 'rgba(0, 0, 255, 0.1)',
-                                'fill-outline-color': 'blue'
+                                'fill-color': 'lightgrey', // Changed fill color to light grey
+                                'fill-outline-color': 'black'
                             }
                         });
+                        map.addSource('us-boundaries-labels', {
+                            type: 'geojson',
+                            data: labelData
+                        });
                         map.addLayer({
-                            id: 'us-boundaries-labels',
+                            id: 'us-boundaries-labels-layer',
                             type: 'symbol',
-                            source: 'us-boundaries',
+                            source: 'us-boundaries-labels',
                             layout: {
-                                'text-field': ['get', nameField],
+                                'text-field': ['get', 'name'],
                                 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                                'text-size': 12
+                                'text-size': 40, // Increased font size
+                                'text-transform': 'uppercase', // Changed text to uppercase
+                                'text-letter-spacing': 0.05, // Added letter spacing
+                                'text-offset': [0, 0.6],
+                                'text-anchor': 'top'
                             },
                             paint: {
-                                'text-color': 'black'
+                                'text-color': 'black',
+                                'text-halo-color': 'white', // Added halo color
+                                'text-halo-width': 5 // Added halo width
                             }
                         });
                     }
+                    document.getElementById('year-label').textContent = `Year: ${year}`;
                 })
                 .catch(error => console.error('Error loading shapefile:', error));
         }
